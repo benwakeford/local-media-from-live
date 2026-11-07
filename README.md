@@ -57,6 +57,7 @@ Put site-specific settings here rather than editing the plugin, so every site ru
 
 ## Changelog
 
+- **2.0.1** TimThumb links with a site-relative `src` (no domain, as some WooThemes themes produce) are now handled.
 - **2.0.0** Settings moved to wp-config.php so one copy serves every site. Optional live uploads URL. TimThumb handling can be switched off. Admin notice when not configured.
 - **1.1** TimThumb `thumb.php` support.
 - **1.0** First version.

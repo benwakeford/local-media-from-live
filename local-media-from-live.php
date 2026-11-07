@@ -3,7 +3,7 @@
  * Plugin Name: Local: Media from Live
  * Plugin URI:  https://github.com/benwakeford/local-media-from-live
  * Description: LOCAL ONLY. Any upload missing from this local copy is loaded from the live site instead, so the uploads folder doesn't need to be on this machine. Configure it in wp-config.php (see README). Inert on any environment that isn't 'local'.
- * Version:     2.0.0
+ * Version:     2.0.1
  * Author:      Ben Wakeford
  * Requires PHP: 7.4
  * License:     GPL-2.0-or-later
@@ -98,7 +98,12 @@ function lmfl_filter_html( $html ) {
 		$html = preg_replace_callback(
 			'#(?:https?:)?//[^"\'\s<>]+/thumb\.php\?src=([^&"\'\s<>]+)[^"\'\s<>]*#',
 			function ( $m ) use ( $live ) {
-				$src = lmfl_swap( rawurldecode( $m[1] ) );
+				$src = html_entity_decode( rawurldecode( $m[1] ) );
+				// Some themes pass a site-relative path (e.g. "wp-content/uploads/..."), not a URL.
+				if ( ! preg_match( '#^(?:https?:)?//#i', $src ) ) {
+					$src = home_url( '/' . ltrim( $src, '/' ) );
+				}
+				$src = lmfl_swap( $src );
 				return strpos( $src, $live ) === 0 ? $src : $m[0];
 			},
 			$html
