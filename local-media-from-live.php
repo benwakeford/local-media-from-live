@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Local: Media from Live
  * Plugin URI:  https://github.com/benwakeford/local-media-from-live
- * Description: LOCAL ONLY. Any upload missing from this local copy is loaded from the live site instead, so the uploads folder doesn't need to be on this machine. Configure it in wp-config.php (see README). Inert on any environment that isn't 'local'.
- * Version:     2.0.1
+ * Description: LOCAL AND PREVIEW COPIES ONLY. Any upload missing from this copy is loaded from the live site instead, so the uploads folder doesn't need to be copied. Configure it in wp-config.php (see README). Inert unless the environment is 'local' or LMFL_ALLOW_NON_LOCAL is set.
+ * Version:     2.1.0
  * Author:      Ben Wakeford
  * Requires PHP: 7.4
  * License:     GPL-2.0-or-later
@@ -15,12 +15,16 @@
  *   LMFL_LIVE_UPLOADS_URL  Optional. Only if live's uploads aren't at /wp-content/uploads.
  *   LMFL_TIMTHUMB          Optional, default true. Rewrites TimThumb (thumb.php?src=) links
  *                          to the live image when the original isn't on this machine.
+ *   LMFL_ALLOW_NON_LOCAL   Optional, default false. Set to true to run on a site whose
+ *                          environment isn't 'local', e.g. a client preview copy on InstaWP.
+ *                          Only ever set this in that copy's own wp-config.php.
  */
 
 defined( 'ABSPATH' ) || exit;
 
-// Safety net: never run anywhere but Local (wp-config sets WP_ENVIRONMENT_TYPE = 'local').
-if ( wp_get_environment_type() !== 'local' ) {
+// Safety net: only run on Local (wp-config sets WP_ENVIRONMENT_TYPE = 'local'), or on a
+// preview copy that opts in explicitly with LMFL_ALLOW_NON_LOCAL in its own wp-config.php.
+if ( wp_get_environment_type() !== 'local' && ! ( defined( 'LMFL_ALLOW_NON_LOCAL' ) && LMFL_ALLOW_NON_LOCAL === true ) ) {
 	return;
 }
 
@@ -31,6 +35,14 @@ if ( ! defined( 'LMFL_LIVE_URL' ) || ! is_string( LMFL_LIVE_URL ) || LMFL_LIVE_U
 	} );
 	return;
 }
+
+// Never point a site at itself (e.g. wp-config copied to the live server by mistake).
+$lmfl_live_host = strtolower( (string) wp_parse_url( LMFL_LIVE_URL, PHP_URL_HOST ) );
+$lmfl_this_host = strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) );
+if ( $lmfl_live_host === '' || preg_replace( '#^www\.#', '', $lmfl_live_host ) === preg_replace( '#^www\.#', '', $lmfl_this_host ) ) {
+	return;
+}
+unset( $lmfl_live_host, $lmfl_this_host );
 
 /**
  * Live uploads URL, no trailing slash.

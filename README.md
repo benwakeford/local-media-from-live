@@ -14,8 +14,9 @@ It only ever rewrites URLs; nothing is downloaded or written to disk.
 
 ## Safety
 
-- Does nothing unless `wp_get_environment_type()` is `local`.
+- Does nothing unless `wp_get_environment_type()` is `local`, or the site opts in with `LMFL_ALLOW_NON_LOCAL` (see below).
 - Does nothing unless `LMFL_LIVE_URL` is defined (shows a notice in wp-admin instead).
+- Does nothing if `LMFL_LIVE_URL` is the site's own domain (with or without `www.`), so a wp-config copied to live by mistake can't point the site at itself.
 - Keep it out of your live deployments anyway. The setup below keeps it out of the site's own repo.
 
 ## Install (shared copy, symlinked)
@@ -47,6 +48,22 @@ define( 'LMFL_LIVE_URL', 'https://www.example.com' );
 | `LMFL_LIVE_URL` | Yes | | The live site. Include `www.` if live uses it. Trailing slash optional. |
 | `LMFL_LIVE_UPLOADS_URL` | No | `LMFL_LIVE_URL` + `/wp-content/uploads` | Only if live's uploads are somewhere else (custom upload path, CDN). |
 | `LMFL_TIMTHUMB` | No | `true` | Set to `false` to leave `thumb.php` links alone. |
+| `LMFL_ALLOW_NON_LOCAL` | No | `false` | Set to `true` to run on a copy that isn't `local`, e.g. a client preview on InstaWP. Only ever set it in that copy's own wp-config.php. |
+
+## Preview copies (InstaWP etc.)
+
+Useful when a site is pushed to a throwaway host for client previews and copying the whole uploads folder takes too long.
+
+1. Copy the plugin file into the preview site's `wp-content/mu-plugins/` as a real file (a symlink won't survive the trip).
+2. Add to the preview site's wp-config.php:
+
+   ```php
+   define( 'LMFL_LIVE_URL', 'https://www.example.com' );
+   define( 'LMFL_ALLOW_NON_LOCAL', true );
+   ```
+3. Push without media, or only the recent upload months the preview needs. Anything new that isn't on live yet still has to be on the preview site itself.
+
+Never set `LMFL_ALLOW_NON_LOCAL` on a staging or production server that clients or the public use for real.
 
 Put site-specific settings here rather than editing the plugin, so every site runs the same file.
 
@@ -57,6 +74,7 @@ Put site-specific settings here rather than editing the plugin, so every site ru
 
 ## Changelog
 
+- **2.1.0** `LMFL_ALLOW_NON_LOCAL` lets a preview copy (e.g. InstaWP) opt in. Does nothing if `LMFL_LIVE_URL` points at the site's own domain.
 - **2.0.1** TimThumb links with a site-relative `src` (no domain, as some WooThemes themes produce) are now handled.
 - **2.0.0** Settings moved to wp-config.php so one copy serves every site. Optional live uploads URL. TimThumb handling can be switched off. Admin notice when not configured.
 - **1.1** TimThumb `thumb.php` support.
